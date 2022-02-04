@@ -110,16 +110,28 @@ path = sys.argv[1]
 dir = os.listdir(path)
 i = 0
 
+print('var idx = {')
+
 for filename in dir:
   file = open(path + filename, errors='ignore')
   text = file.read()
   file.close()
   slices = slice_tokenize(text)
-  json = {}
-  json['filename'] = filename
-  json['data'] = process_slices(slices)
-  print(json)
+  data = process_slices(slices)
+
+  # Here we have the following structure:
+  # "file1.txt": {
+  #   "word1": 1.50,
+  #   "word2": 0.75.
+  #   ...
+  # }
+  print("\"", filename, "\":", data, sep='')
+
+  # Put a comma unless this is the last file
+  if (len(dir) - i) > 1:
+    print(",")
+
   i = i + 1
   sys.stderr.write(str(i) + "/" + str(len(dir)) + "\n")
 
-
+print('}')

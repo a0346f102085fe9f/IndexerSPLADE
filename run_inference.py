@@ -106,7 +106,7 @@ def process_slices(slices):
   sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
   elem = {}
   for k, v in sorted_d.items():
-    elem[reverse_voc[k]] = round(v, 2)
+    elem[reverse_voc[k]] = v
 
   # Return JSON
   return { 'elements': elem, 'magnitude': mag }

@@ -132,6 +132,6 @@ for filename in dir:
     print(",")
 
   i = i + 1
-  sys.stderr.write(str(i) + "/" + str(len(dir)) + "\n")
+  sys.stderr.write(str(i) + "/" + str(len(dir)) + " " + filename + "\n")
 
 print('}')

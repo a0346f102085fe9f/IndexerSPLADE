@@ -6,6 +6,13 @@ import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 
+# Use GPU if running on Google Colab
+# The model isn't large, it will run on anything
+# Even a K80 gives a massive speed boost over a Ryzen 3700X
+# Use !nvidia-smi to check what card you got
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+
 # Model
 # Extends torch module
 # Overrides `forward()`
@@ -46,6 +53,7 @@ model_type_or_dir = "weights/splade_distil_CoCodenser_large"
 #
 model = Splade(model_type_or_dir, agg=agg)
 model.eval()
+model.to(device)
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
@@ -60,9 +68,8 @@ def slice_tokenize(doc):
 
   while offset < size:
     tgt = min(offset + 512, size)
-    slice = {}
-    slice['input_ids'] = tokenized_data.input_ids[:,offset:tgt].clone()
-    slice['attention_mask'] = tokenized_data.attention_mask[:,offset:tgt]
+    attention_mask = tokenized_data.attention_mask[:,offset:tgt]
+    input_ids = tokenized_data.input_ids[:,offset:tgt].clone()
 
     # Scrutiny paid off:
     # We saw a big drop in dimension count with initial slicing
@@ -71,7 +78,13 @@ def slice_tokenize(doc):
     # Additionally, we are missing token 101 from the start of any consecutive slices, but it doesn't seem to make much difference
     # Be sure to execute .clone() first in order to avoid edition the original tokenized_data, since pytorch uses "views" for slicing
     if tgt - offset == 512:
-      slice['input_ids'][0,511] = 102
+      input_ids[0,511] = 102
+
+    slice = {}
+
+    # Upload to GPU, if available
+    slice['attention_mask'] = attention_mask.to(device)
+    slice['input_ids'] = input_ids.to(device)
 
     offset = offset + 511
     slices.append(slice)
@@ -85,7 +98,7 @@ def process_slice(data):
   with torch.no_grad():
       doc_rep = model(**data).squeeze()
 
-  return doc_rep
+  return doc_rep.to("cpu")
 
 def process_slices(slices):
   z = torch.zeros(30522)

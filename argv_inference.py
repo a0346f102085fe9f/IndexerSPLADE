@@ -86,7 +86,20 @@ while offset < size:
   offset = offset + 511
   slices.append(slice)
 
-#print(slices)
+
+# Print tokenized input so you can see what the model sees
+# ['[CLS]', 'word1', 'word2', 'word3', ..., '[SEP]']
+def dump_slice(slice):
+  token_ids = slice['input_ids'].tolist()[0]
+  tokens = []
+  for id in token_ids:
+    tokens.append(reverse_voc[id])
+
+  print(tokens)
+
+for slice in slices:
+  dump_slice(slice)
+
 
 # Evaluate 512-token slices and add up the vectors each one produced
 # Model returns sparse vectors of 30522 elements

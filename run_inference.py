@@ -91,6 +91,12 @@ def process_slices(slices):
   for slice in slices:
     z = z + process_slice(slice)
 
+  # Precompute the magnitude
+  # 1. Dot product self
+  # 2. Take square root
+  # 3. Tensor -> float
+  mag = float(z.dot(z)**0.5)
+
   # get the number of non-zero dimensions in the rep:
   col = torch.nonzero(z).squeeze().cpu().tolist()
 
@@ -98,11 +104,12 @@ def process_slices(slices):
   weights = z[col].cpu().tolist()
   d = {k: v for k, v in zip(col, weights)}
   sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
-  json = {}
+  elem = {}
   for k, v in sorted_d.items():
-    json[reverse_voc[k]] = round(v, 2)
+    elem[reverse_voc[k]] = round(v, 2)
 
-  return json
+  # Return JSON
+  return { 'elements': elem, 'magnitude': mag }
 
 
 # Main loop
@@ -119,11 +126,10 @@ for filename in dir:
   slices = slice_tokenize(text)
   data = process_slices(slices)
 
-  # Here we have the following structure:
+  # Data has the following structure:
   # "file1.txt": {
-  #   "word1": 1.50,
-  #   "word2": 0.75.
-  #   ...
+  #   elements: { "word1": 1.50, "word2": 0.75, ... },
+  #   magnitude: 70.8
   # }
   print("\"", filename, "\":", data, sep='')
 

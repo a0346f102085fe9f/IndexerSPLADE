@@ -102,6 +102,12 @@ z = torch.zeros(30522)
 for slice in slices:
   z = z + process_slice(slice)
 
+# Precompute the magnitude
+# 1. Dot product self
+# 2. Take square root
+# 3. Tensor -> float
+mag = float(z.dot(z)**0.5)
+
 # get the number of non-zero dimensions in the rep:
 col = torch.nonzero(z).squeeze().cpu().tolist()
 print("number of actual dimensions: ", len(col))
@@ -110,8 +116,12 @@ print("number of actual dimensions: ", len(col))
 weights = z[col].cpu().tolist()
 d = {k: v for k, v in zip(col, weights)}
 sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
-_json = {}
+elem = {}
 for k, v in sorted_d.items():
-    _json[reverse_voc[k]] = round(v, 2)
+    elem[reverse_voc[k]] = round(v, 2)
 
-print("JSON representation:\n", json.dumps(_json, indent=4))
+_json = { 'elements': elem, 'magnitude': mag }
+
+
+print("JSON representation:")
+print(json.dumps(_json, indent=4))

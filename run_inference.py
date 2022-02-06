@@ -36,8 +36,10 @@ class Splade(torch.nn.Module):
 
 ##### v2
 agg = "max"
-model_type_or_dir = "weights/splade_max"
+model_type_or_dir = "weights/splade_distil_CoCodenser_large"
+# model_type_or_dir = "weights/splade_max"
 # model_type_or_dir = "weights/distilsplade_max"
+# Model taken from http://download-de.europe.naverlabs.com/Splade_Release_Jan22/splade_distil_CoCodenser_large.tar.gz
 
 
 # Model loading

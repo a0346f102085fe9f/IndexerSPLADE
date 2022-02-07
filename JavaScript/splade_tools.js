@@ -10,6 +10,8 @@ var idx
 function populate_views() {
 	log("Populating datatape views...")
 
+	var time_start = performance.now()
+
 	// Offset is in bytes
 	var tape_offset_k = 0
 	var tape_offset_v = 0
@@ -17,15 +19,28 @@ function populate_views() {
 	for (var filename in idx) {
 		var entry = idx[filename]
 
-		// Possible optimization: since we do keys.indexOf() a lot, it would make sense to put them into a key => index hashmap
-		entry.keys = new Uint16Array(datatape_k, tape_offset_k, entry.dimensions)
-		entry.values = new Float32Array(datatape_v, tape_offset_v, entry.dimensions)
+		var keys = new Uint16Array(datatape_k, tape_offset_k, entry.dimensions)
+		var values = new Float32Array(datatape_v, tape_offset_v, entry.dimensions)
+		
+		var expkeys = new Uint16Array(30522)
+		var i = 0
+
+		for (var key of keys) {
+			expkeys[key] = i
+			i++
+		}
+
+		entry.keys = keys
+		entry.values = values
+		entry.expkeys = expkeys
 
 		tape_offset_k += entry.dimensions * 2
 		tape_offset_v += entry.dimensions * 4
 	}
 
-	log("Done!")
+	var time_done = performance.now()
+
+	log("Done! Took", time_done - time_start, "ms")
 }
 
 
@@ -51,14 +66,14 @@ function dot(a, b) {
 
 	var sk = shorter.keys
 	var sv = shorter.values
-	var lk = longer.keys
+	var lk = longer.expkeys
 	var lv = longer.values
 
 	for (var idx_s in sk) {
 		var key = sk[idx_s]
-		var idx_l = lk.indexOf(key)
+		var idx_l = lk[key]
 
-		if (idx_l != -1) {
+		if (idx_l) {
 			sum += sv[idx_s] * lv[idx_l]
 		}
 	}

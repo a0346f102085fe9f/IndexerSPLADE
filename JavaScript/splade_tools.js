@@ -25,6 +25,8 @@ function populate_views() {
 		var expkeys = new Uint16Array(30522)
 		var i = 0
 
+		expkeys.fill(-1)
+
 		for (var key of keys) {
 			expkeys[key] = i
 			i++
@@ -73,7 +75,7 @@ function dot(a, b) {
 		var key = sk[idx_s]
 		var idx_l = lk[key]
 
-		if (idx_l) {
+		if (idx_l <= 30522) {
 			sum += sv[idx_s] * lv[idx_l]
 		}
 	}

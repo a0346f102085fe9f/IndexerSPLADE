@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title></title>
+	<script type="text/javascript" src="networking.js"></script>
+	<script type="text/javascript" src="splade_tools.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+	// Track three XHR downloads
+	// A little messy
+	var done_alerts = 0
+
+	function done_alert() {
+		done_alerts++
+
+		if (done_alerts === 3)
+			populate_views()
+	}
+
+	var load_fn_1 = function(response) { 
+		idx = response
+		done_alert()
+	}
+
+	var load_fn_2 = function(response) {
+		datatape_k = response
+		done_alert()
+	}
+
+	var load_fn_3 = function(response) {
+		datatape_v = response
+		done_alert()
+	}
+
+	get("idx.json", load_fn_1, "json")
+	get("datatape_k.bin", load_fn_2, "arraybuffer")
+	get("datatape_v.bin", load_fn_3, "arraybuffer")
+</script>
+</body>
+</html>

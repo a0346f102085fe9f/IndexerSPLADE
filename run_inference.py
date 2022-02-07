@@ -149,12 +149,12 @@ i = 0
 
 datatape_k = open("datatape_k.bin", "wb")
 datatape_v = open("datatape_v.bin", "wb")
-idx = open("idx.json", "w")
+idx = open("idx.json", "w", encoding='utf-8', errors='replace')
 
 idx.write("{")
 
 for filename in dir:
-  file = open(path + filename, errors='ignore')
+  file = open(path + filename, encoding='utf-8', errors='replace')
   text = file.read()
   file.close()
   slices = slice_tokenize(text)

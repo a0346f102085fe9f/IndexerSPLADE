@@ -99,10 +99,10 @@ def process_slice(data):
   with torch.no_grad():
       doc_rep = model(**data).squeeze()
 
-  return doc_rep.to("cpu")
+  return doc_rep
 
 def process_slices(slices):
-  z = torch.zeros(30522)
+  z = torch.zeros(30522).to(device)
 
   for slice in slices:
     z = z + process_slice(slice)

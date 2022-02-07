@@ -3,6 +3,7 @@
 import os
 import sys
 import torch
+from array import array
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 
@@ -115,16 +116,13 @@ def process_slices(slices):
   # get the number of non-zero dimensions in the rep:
   col = torch.nonzero(z).squeeze().cpu().tolist()
 
-  # now let's inspect the bow representation:
+  # Sort the elements
+  # Those that have the highest weight come first
   weights = z[col].cpu().tolist()
   d = {k: v for k, v in zip(col, weights)}
   sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
-  elem = {}
-  for k, v in sorted_d.items():
-    elem[reverse_voc[k]] = v
 
-  # Return JSON
-  return { 'elements': elem, 'magnitude': mag }
+  return (sorted_d, mag)
 
 
 # Main loop
@@ -132,27 +130,54 @@ path = sys.argv[1]
 dir = os.listdir(path)
 i = 0
 
-print('var idx = {')
+# We'll produce three files:
+# - idx.json
+# - datatape_k.bin
+# - datatape_v.bin
+#
+# JSON has the following structure:
+# "file1.txt": {
+#   dimensions: 1420,
+#   magnitude: 70.8
+# }
+#
+# Datatapes are:
+# datatape_k.bin  UInt16 data
+# datatape_v.bin  Float32 data
+#
+#
+
+datatape_k = open("datatape_k.bin", "wb")
+datatape_v = open("datatape_v.bin", "wb")
+idx = open("idx.json", "w")
+
+idx.write("{")
 
 for filename in dir:
   file = open(path + filename, errors='ignore')
   text = file.read()
   file.close()
   slices = slice_tokenize(text)
-  data = process_slices(slices)
+  data, mag = process_slices(slices)
 
-  # Data has the following structure:
-  # "file1.txt": {
-  #   elements: { "word1": 1.50, "word2": 0.75, ... },
-  #   magnitude: 70.8
-  # }
-  print("\"", filename, "\":", data, sep='')
+  k_array = array("h", data.keys())
+  v_array = array("f", data.values())
+
+  k_array.tofile(datatape_k)
+  v_array.tofile(datatape_v)
+
+  json = "\"" + filename + "\":{\"dimensions\":" + str(len(data)) + ",\"magnitude\":" + str(mag) + "}"
+  idx.write(json)
 
   # Put a comma unless this is the last file
   if (len(dir) - i) > 1:
-    print(",")
+    idx.write(",")
 
   i = i + 1
-  sys.stderr.write(str(i) + "/" + str(len(dir)) + " " + filename + "\n")
+  print(str(i) + "/" + str(len(dir)) + " " + filename)
 
-print('}')
+idx.write("}")
+
+datatape_k.close()
+datatape_v.close()
+idx.close()

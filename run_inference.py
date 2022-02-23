@@ -59,38 +59,54 @@ tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
 
+# Tokenize
+#
+# Tokenizer produces this structure:
+# { 'input_ids': [], 'token_type_ids': [], 'attention_mask': [] }
+#
+# We are not interested in 'token_type_ids'.
+#
 # Split lots of tokens into 512-token slices
 # 512 tokens is the limit of this model
 def slice_tokenize(doc):
-  tokenized_data = tokenizer(doc, return_tensors="pt")
-  size = tokenized_data.input_ids.size()[1]
-  slices = []
-  offset = 0
+	slices = []
+	slice = [[],[]]
 
-  while offset < size:
-    tgt = min(offset + 512, size)
-    attention_mask = tokenized_data.attention_mask[:,offset:tgt]
-    input_ids = tokenized_data.input_ids[:,offset:tgt].clone()
+	slice_size = 0
+	total_size = 0
 
-    # Scrutiny paid off:
-    # We saw a big drop in dimension count with initial slicing
-    # Turns out that we were missing token 102, aka [SEP], that should go at the end
-    # Adding it back forcibly brings the dimensions back up. The model appears to have heavy dependence on it being there.
-    # Additionally, we are missing token 101 from the start of any consecutive slices, but it doesn't seem to make much difference
-    # Be sure to execute .clone() first in order to avoid edition the original tokenized_data, since pytorch uses "views" for slicing
-    if tgt - offset == 512:
-      input_ids[0,511] = 102
+	for line in doc.split("\n"):
+		line = line.strip()
 
-    slice = {}
+		if line == "":
+			continue
 
-    # Upload to GPU, if available
-    slice['attention_mask'] = attention_mask.to(device)
-    slice['input_ids'] = input_ids.to(device)
+		tokens = tokenizer(line)
 
-    offset = offset + 511
-    slices.append(slice)
+		size = len(tokens['input_ids'])
 
-  return slices
+		if (size > 512):
+			print("ABORT: Encountered a very long line of text. Is it minified code? Stray binary data?")
+			return 0
+
+		if (slice_size + size > 512):
+			slices.append( {'input_ids': torch.tensor([slice[0]]).to(device), 'attention_mask': torch.tensor([slice[1]]).to(device) } )
+			slice = [[],[]]
+			slice_size = 0
+			# Flush
+
+		slice[0].extend( tokens['input_ids'] )
+		slice[1].extend( tokens['attention_mask'] )
+		slice_size = slice_size + size
+		total_size = total_size + size
+
+	if (slice_size > 0):
+		slices.append( {'input_ids': torch.tensor([slice[0]]).to(device), 'attention_mask': torch.tensor([slice[1]]).to(device) } )
+		slice = [[],[]]
+		slice_size = 0
+		# Flush
+
+	return slices
 
 
 # Evaluate 512-token slices and add up the vectors each one produced
@@ -158,7 +174,11 @@ for filename in dir:
   text = file.read()
   file.close()
   slices = slice_tokenize(text)
-  data, mag = process_slices(slices)
+  if slices:
+    data, mag = process_slices(slices)
+  else:
+    data = {}
+    mag = 0.0
 
   k_array = array("h", data.keys())
   v_array = array("f", data.values())

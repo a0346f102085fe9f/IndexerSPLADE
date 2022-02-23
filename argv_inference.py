@@ -58,35 +58,53 @@ doc=sys.argv[1]
 
 
 # Tokenize
-tokenized_data = tokenizer(doc, return_tensors="pt")
-size = tokenized_data.input_ids.size()[1]
-
-print("Tokens in total: ", size)
-# print(tokenized_data)
-
-
+#
+# Tokenizer produces this structure:
+# { 'input_ids': [], 'token_type_ids': [], 'attention_mask': [] }
+#
+# We are not interested in 'token_type_ids'.
+#
 # Split lots of tokens into 512-token slices
 # 512 tokens is the limit of this model
 slices = []
-offset = 0
+slice = [[],[]]
 
-while offset < size:
-  tgt = min(offset + 512, size)
-  slice = {}
-  slice['input_ids'] = tokenized_data.input_ids[:,offset:tgt].clone()
-  slice['attention_mask'] = tokenized_data.attention_mask[:,offset:tgt]
+slice_size = 0
+total_size = 0
 
-  # Scrutiny paid off:
-  # We saw a big drop in dimension count with initial slicing
-  # Turns out that we were missing token 102, aka [SEP], that should go at the end
-  # Adding it back forcibly brings the dimensions back up. The model appears to have heavy dependence on it being there.
-  # Additionally, we are missing token 101 from the start of any consecutive slices, but it doesn't seem to make much difference
-  # Be sure to execute .clone() first in order to avoid edition the original tokenized_data, since pytorch uses "views" for slicing
-  if tgt - offset == 512:
-    slice['input_ids'][0,511] = 102
+for line in doc.split("\n"):
+	line = line.strip()
 
-  offset = offset + 511
-  slices.append(slice)
+	if line == "":
+		continue
+
+	tokens = tokenizer(line)
+
+	size = len(tokens['input_ids'])
+
+	if (size > 512):
+		print("ABORT: Encountered a very long line of text. Is it minified code? Stray binary data?")
+		exit()
+
+	if (slice_size + size > 512):
+		slices.append( {'input_ids': torch.tensor([slice[0]]), 'attention_mask': torch.tensor([slice[1]]) } )
+		slice = [[],[]]
+		slice_size = 0
+		# Flush
+
+	slice[0].extend( tokens['input_ids'] )
+	slice[1].extend( tokens['attention_mask'] )
+	slice_size = slice_size + size
+	total_size = total_size + size
+
+if (slice_size > 0):
+	slices.append( {'input_ids': torch.tensor([slice[0]]), 'attention_mask': torch.tensor([slice[1]]) } )
+	slice = [[],[]]
+	slice_size = 0
+	# Flush
+
+print("Tokens in total: ", total_size)
+print(slices)
 
 
 # Print tokenized input so you can see what the model sees

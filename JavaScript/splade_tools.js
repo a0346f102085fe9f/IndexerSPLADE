@@ -1,5 +1,6 @@
-var log = console.log
+"use strict";
 
+var log = console.log
 
 // Datatape K 	Uint16 token IDs
 // Datatape V 	Float32 token weights
@@ -22,6 +23,7 @@ function populate_views() {
 		var keys = new Uint16Array(datatape_k, tape_offset_k, entry.dimensions)
 		var values = new Float32Array(datatape_v, tape_offset_v, entry.dimensions)
 		
+		// "Expanded keys" where compact representation is restored to its full 30522 dimensions
 		var expkeys = new Uint16Array(30522)
 		var i = 0
 
@@ -53,7 +55,7 @@ function populate_views() {
 //  "keys": [ Uint16 ],
 //  "values": [ Float32 ]
 // }
-function dot(a, b) {
+function dot(a, b, strict_intersect = false) {
 	var sum = 0.0
 
 	// Try to select the shorter sequence for the loop
@@ -62,6 +64,13 @@ function dot(a, b) {
 
 	// Swap if we guessed wrong
 	if (a.dimensions < b.dimensions) {
+		shorter = a
+		longer = b
+	}
+
+	// Also a small hack
+	// No expkeys on user queries
+	if ("expkeys" in a === false) {
 		shorter = a
 		longer = b
 	}
@@ -77,6 +86,10 @@ function dot(a, b) {
 
 		if (idx_l <= 30522) {
 			sum += sv[idx_s] * lv[idx_l]
+		} else {
+			// Key not found
+			if (strict_intersect)
+				return 0.0
 		}
 	}
 
@@ -85,8 +98,8 @@ function dot(a, b) {
 
 // Cosine similarity is absolutely necessary for SPLADE
 // It just doesn't work at all if you only do the dot()
-function cosine_similarity(a, b) {
-	return dot(a, b) / (a.magnitude * b.magnitude)
+function cosine_similarity(a, b, strict_intersect = false) {
+	return dot(a, b, strict_intersect) / (a.magnitude * b.magnitude)
 }
 
 
@@ -112,5 +125,60 @@ function find_similar_to(title) {
 	var sort_fn = function(a, b) { return b.score - a.score }
 
 	results.sort(sort_fn)
-	log(results)
+	
+	return results
+}
+
+// Takes an array of token IDs as produced by BERT tokenizer
+function find_similar_query(tokens) {
+	var distinct_total = 0
+	var distinct = {}
+
+	// Assign more value to recurring tokens
+	for (var id of tokens) {
+		if (id in distinct) {
+			distinct[id]++
+		} else {
+			distinct[id] = 1
+			distinct_total++
+		}
+	}
+
+	var dot = 0.0
+	var k = new Uint16Array(distinct_total)
+	var v = new Float32Array(distinct_total)
+	var i = 0
+
+	for (var id in distinct) {
+		k[i] = id
+		v[i] = distinct[id]
+		dot += distinct[id]**2
+
+		i++
+	}
+
+	// Take square root
+	var mag = dot**0.5
+
+	var a = { "elements": distinct_total, "magnitude": mag, "keys": k, "values": v }
+	var results = []
+
+	for (var target in idx) {
+		var b = idx[target]
+		var ab = cosine_similarity(a, b, true)
+		
+		if (ab > 0) {
+			results.push( { title: target, score: ab } )
+		} else {
+			// Discarded
+		}
+	}
+
+	var sort_fn = function(a, b) { return b.score - a.score }
+
+	results.sort(sort_fn)
+
+	log("Returning", results.length, "entries")
+	
+	return results
 }

@@ -118,7 +118,11 @@ def process_tokenized(tokenized_data):
   # Sort the elements
   # Those that have the highest weight come first
   weights = z[col].cpu().tolist()
-  d = {k: v for k, v in zip(col, weights)}
+
+  d = {}
+  for k, v in zip(col, weights):
+  	d[k] = v
+
   sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
 
   return (sorted_d, mag)

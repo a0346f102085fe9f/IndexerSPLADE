@@ -49,6 +49,16 @@ model.eval()
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
+def inspect_json(sorted_d):
+  elem = {}
+  for k, v in sorted_d.items():
+    elem[reverse_voc[k]] = round(v, 2)
+
+  _json = { 'elements': elem, 'magnitude': mag }
+
+  print("JSON representation:")
+  print(json.dumps(_json, indent=4))
+
 
 # example document from MS MARCO passage collection (doc_id = 8003157)
 # doc = "Glass and Thermal Stress. Thermal Stress is created when one area of a glass pane gets hotter than an adjacent area. If the stress is too great then the glass will crack. The stress level at which the glass will break is governed by several factors."
@@ -131,12 +141,5 @@ print("number of actual dimensions: ", len(col))
 weights = z[col].cpu().tolist()
 d = {k: v for k, v in zip(col, weights)}
 sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
-elem = {}
-for k, v in sorted_d.items():
-    elem[reverse_voc[k]] = round(v, 2)
 
-_json = { 'elements': elem, 'magnitude': mag }
-
-
-print("JSON representation:")
-print(json.dumps(_json, indent=4))
+inspect_json(sorted_d)

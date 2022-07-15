@@ -2,6 +2,7 @@
 # Dependencies
 import os
 import sys
+import json
 import torch
 from array import array
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -57,6 +58,16 @@ model.eval()
 model.to(device)
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
+
+def inspect_json(sorted_d):
+  elem = {}
+  for k, v in sorted_d.items():
+    elem[reverse_voc[k]] = round(v, 2)
+
+  _json = { 'elements': elem, 'magnitude': mag }
+
+  print("JSON representation:")
+  print(json.dumps(_json, indent=4))
 
 
 # Split lots of tokens into 512-token slices

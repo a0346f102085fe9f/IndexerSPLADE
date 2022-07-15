@@ -73,32 +73,32 @@ def inspect_json(sorted_d, mag):
 # Split lots of tokens into 512-token slices
 # 512 tokens is the limit of this model
 def slices(tokenized_data):
-  size = tokenized_data.input_ids.size()[1]
+  input_ids = tokenized_data.input_ids
+  attention_mask = tokenized_data.attention_mask
+  size = len(input_ids)
   slices = []
-  offset = 0
 
-  while offset < size:
-    tgt = min(offset + 512, size)
-    attention_mask = tokenized_data.attention_mask[:,offset:tgt]
-    input_ids = tokenized_data.input_ids[:,offset:tgt].clone()
+  # Scrutiny paid off:
+  # We saw a big drop in dimension count with initial slicing
+  # Turns out that we were missing token 102, aka [SEP], that should go at the end
+  # Adding it back forcibly brings the dimensions back up. The model appears to have heavy dependence on it being there.
+  # Additionally, we are missing token 101 from the start of any consecutive slices, but it doesn't seem to make much difference
+  for i in range(1, 1 + size // 512):
+    input_ids.insert(i * 512 - 1, 102)
+    attention_mask.insert(i * 512 - 1, 1)
 
-    # Scrutiny paid off:
-    # We saw a big drop in dimension count with initial slicing
-    # Turns out that we were missing token 102, aka [SEP], that should go at the end
-    # Adding it back forcibly brings the dimensions back up. The model appears to have heavy dependence on it being there.
-    # Additionally, we are missing token 101 from the start of any consecutive slices, but it doesn't seem to make much difference
-    # Be sure to execute .clone() first in order to avoid edition the original tokenized_data, since pytorch uses "views" for slicing
-    if tgt - offset == 512:
-      input_ids[0,511] = 102
+  while size > 0:
+    t_input_ids = [ input_ids[:512] ]
+    t_attention_mask = [ attention_mask[:512] ]
 
     slice = {}
-
-    # Upload to GPU, if available
-    slice['attention_mask'] = attention_mask.to(device)
-    slice['input_ids'] = input_ids.to(device)
-
-    offset = offset + 511
+    slice['input_ids'] = torch.tensor(t_input_ids).to(device)
+    slice['attention_mask'] = torch.tensor(t_attention_mask).to(device)
     slices.append(slice)
+
+    input_ids = input_ids[512:]
+    attention_mask = attention_mask[512:]
+    size -= 512
 
   return slices
 
@@ -173,7 +173,7 @@ for filename in dir:
   text = file.read()
   file.close()
 
-  tokenized_data = tokenizer(text, return_tensors="pt")
+  tokenized_data = tokenizer(text)
   data, mag = process_tokenized(tokenized_data)
 
   k_array = array("h", data.keys())

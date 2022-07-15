@@ -61,8 +61,7 @@ reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
 # Split lots of tokens into 512-token slices
 # 512 tokens is the limit of this model
-def slice_tokenize(doc):
-  tokenized_data = tokenizer(doc, return_tensors="pt")
+def slices(tokenized_data):
   size = tokenized_data.input_ids.size()[1]
   slices = []
   offset = 0
@@ -101,10 +100,10 @@ def process_slice(data):
 
   return doc_rep
 
-def process_slices(slices):
+def process_tokenized(tokenized_data):
   z = torch.zeros(30522).to(device)
 
-  for slice in slices:
+  for slice in slices(tokenized_data):
     z = z + process_slice(slice)
 
   # Precompute the magnitude
@@ -157,8 +156,9 @@ for filename in dir:
   file = open(path + filename, encoding='utf-8', errors='replace')
   text = file.read()
   file.close()
-  slices = slice_tokenize(text)
-  data, mag = process_slices(slices)
+
+  tokenized_data = tokenizer(text, return_tensors="pt")
+  data, mag = process_tokenized(tokenized_data)
 
   k_array = array("h", data.keys())
   v_array = array("f", data.values())

@@ -115,14 +115,15 @@ def process_tokenized(tokenized_data):
   # get the number of non-zero dimensions in the rep:
   col = torch.nonzero(z).squeeze().cpu().tolist()
 
-  # Sort the elements
-  # Those that have the highest weight come first
+  # Build the compact vector
   weights = z[col].cpu().tolist()
-
   d = {}
+
   for k, v in zip(col, weights):
   	d[k] = v
 
+  # Sort the elements
+  # Those that have the highest weight come first
   sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
 
   return (sorted_d, mag)

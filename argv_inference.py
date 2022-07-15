@@ -49,7 +49,7 @@ model.eval()
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
-def inspect_json(sorted_d):
+def inspect_json(sorted_d, mag):
   elem = {}
   for k, v in sorted_d.items():
     elem[reverse_voc[k]] = round(v, 2)
@@ -142,4 +142,4 @@ weights = z[col].cpu().tolist()
 d = {k: v for k, v in zip(col, weights)}
 sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
 
-inspect_json(sorted_d)
+inspect_json(sorted_d, mag)

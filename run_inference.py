@@ -59,7 +59,7 @@ model.to(device)
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)
 reverse_voc = {v: k for k, v in tokenizer.vocab.items()}
 
-def inspect_json(sorted_d):
+def inspect_json(sorted_d, mag):
   elem = {}
   for k, v in sorted_d.items():
     elem[reverse_voc[k]] = round(v, 2)

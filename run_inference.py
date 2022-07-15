@@ -87,18 +87,46 @@ def slices(tokenized_data):
     input_ids.insert(i * 512 - 1, 102)
     attention_mask.insert(i * 512 - 1, 1)
 
-  while size > 0:
-    t_input_ids = [ input_ids[:512] ]
-    t_attention_mask = [ attention_mask[:512] ]
+  # Batch size of 2
+  b_input_ids = []
+  b_attention_mask = []
 
-    slice = {}
-    slice['input_ids'] = torch.tensor(t_input_ids).to(device)
-    slice['attention_mask'] = torch.tensor(t_attention_mask).to(device)
-    slices.append(slice)
+  while size >= 512:
+    b_input_ids.append( input_ids[:512] )
+    b_attention_mask.append( attention_mask[:512] )
+
+    # Flush batch
+    if len(b_input_ids) == 2:
+      slice = {}
+      slice['input_ids'] = torch.tensor(b_input_ids).to(device)
+      slice['attention_mask'] = torch.tensor(b_attention_mask).to(device)
+      slices.append(slice)
+
+      b_input_ids.clear()
+      b_attention_mask.clear()
 
     input_ids = input_ids[512:]
     attention_mask = attention_mask[512:]
     size -= 512
+
+  # Flush leftovers
+  if len(b_input_ids) > 0:
+    slice = {}
+    slice['input_ids'] = torch.tensor(b_input_ids).to(device)
+    slice['attention_mask'] = torch.tensor(b_attention_mask).to(device)
+    slices.append(slice)
+
+    b_input_ids.clear()
+    b_attention_mask.clear()
+
+  if size > 0:
+    b_input_ids.append( input_ids[:512] )
+    b_attention_mask.append( attention_mask[:512] )
+
+    slice = {}
+    slice['input_ids'] = torch.tensor(b_input_ids).to(device)
+    slice['attention_mask'] = torch.tensor(b_attention_mask).to(device)
+    slices.append(slice)
 
   return slices
 
@@ -115,7 +143,13 @@ def process_tokenized(tokenized_data):
   z = torch.zeros(30522).to(device)
 
   for slice in slices(tokenized_data):
-    z = z + process_slice(slice)
+    r = process_slice(slice)
+
+    if r.dim() == 1:
+        z = z + r
+    else:
+      for d in r:
+        z = z + d
 
   # Precompute the magnitude
   # 1. Dot product self

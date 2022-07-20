@@ -182,3 +182,55 @@ function find_similar_query(tokens) {
 	
 	return results
 }
+
+var total_sums = null
+
+function build_total_sums() {
+	log("Accumulating total sums...")
+
+	var time_start = performance.now()
+
+	total_sums = new Float64Array(30522)
+
+	for (var title in idx) {
+		var entry = idx[title]
+
+		for (var i in entry.keys) {
+			var k = entry.keys[i]
+			var v = entry.values[i]
+
+			total_sums[k] += v
+		}
+	}
+
+	var time_done = performance.now()
+
+	log("Done! Took", time_done - time_start, "ms")
+}
+
+// Predicts a query that should return a given title as the best match
+function predict_best_query(title) {
+	var entry = idx[title]
+	var results = []
+
+	for (var i in entry.keys) {
+		var k = entry.keys[i]
+		var v = entry.values[i]
+
+		// This is essentially TF-IDF
+		results[i] = { token: k, score: v * v/total_sums[k] }
+	}
+
+	var sort_fn = function(a, b) { return b.score - a.score }
+
+	results.sort(sort_fn)
+
+	results = results.slice(0, 50)
+
+	var tokens = []
+
+	for (var entry of results)
+		tokens.push(entry.token)
+
+	return tokens
+}

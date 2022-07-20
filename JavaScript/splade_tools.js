@@ -195,7 +195,7 @@ function build_total_sums() {
 	for (var title in idx) {
 		var entry = idx[title]
 
-		for (var i in entry.keys) {
+		for (var i = 0; i < entry.dimensions; i++) {
 			var k = entry.keys[i]
 			var v = entry.values[i]
 

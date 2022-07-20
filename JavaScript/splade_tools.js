@@ -80,7 +80,7 @@ function dot(a, b, strict_intersect = false) {
 	var lk = longer.expkeys
 	var lv = longer.values
 
-	for (var idx_s in sk) {
+	for (var idx_s = 0; idx_s < sk.length; idx_s++) {
 		var key = sk[idx_s]
 		var idx_l = lk[key]
 

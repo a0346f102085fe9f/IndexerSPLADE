@@ -137,6 +137,16 @@ def process_tokenized(tokenized_data):
   # Those that have the highest weight come first
   sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
 
+  # Mark stray tokens by negating their weight
+  token_map = {}
+
+  for k in tokenized_data.input_ids:
+    token_map[k] = 1
+
+  for k in sorted_d:
+    if not k in token_map:
+      sorted_d[k] = -sorted_d[k]
+
   return (sorted_d, mag)
 
 

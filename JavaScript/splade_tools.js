@@ -29,14 +29,26 @@ function populate_views() {
 
 		expkeys.fill(-1)
 
-		for (var key of keys) {
-			expkeys[key] = i
-			i++
+		for (var i = 0; i < entry.dimensions; i++) {
+			expkeys[ keys[i] ] = i
+		}
+
+		// Tokens that have some weight but were never seen in the text of the document itself
+		// The indexer makes their weight negative during a postprocessing step
+		// We undo that, but keep track of the token IDs
+		var stray = []
+
+		for (var i = 0; i < entry.dimensions; i++) {
+			if (values[i] < 0.0) {
+				values[i] = -values[i]
+				stray.push( keys[i] )
+			} 
 		}
 
 		entry.keys = keys
 		entry.values = values
 		entry.expkeys = expkeys
+		entry.stray = stray
 
 		tape_offset_k += entry.dimensions * 2
 		tape_offset_v += entry.dimensions * 4

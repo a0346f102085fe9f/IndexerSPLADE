@@ -77,7 +77,6 @@ def slices(tokenized_data):
   input_ids = tokenized_data.input_ids
   attention_mask = tokenized_data.attention_mask
   size = len(input_ids)
-  slices = []
 
   # Scrutiny paid off:
   # We saw a big drop in dimension count with initial slicing
@@ -88,29 +87,45 @@ def slices(tokenized_data):
     input_ids.insert(i * 512 - 1, 102)
     attention_mask.insert(i * 512 - 1, 1)
 
-  while size > 0:
-    t_input_ids = [ input_ids[:512] ]
-    t_attention_mask = [ attention_mask[:512] ]
+  # Pad to be a multiple of 512
+  # Attention mask is 0 so having these new tokens should not affect the results
+  while len(input_ids) % 512 > 0:
+    input_ids.append(0)
+    attention_mask.append(0)
 
+  # Turn into tensors
+  # Then make tensors rectangular
+  a_lin = torch.tensor(input_ids)
+  b_lin = torch.tensor(attention_mask)
+
+  a_rect = torch.stack(a_lin.split(512))
+  b_rect = torch.stack(b_lin.split(512))
+
+  # Apply batch size limit
+  # Batch size should be increased if there's spare VRAM
+  bsz = 16
+
+  a_batch = a_rect.split(bsz)
+  b_batch = b_rect.split(bsz)
+  slices = []
+
+  for a, b in zip(a_batch, b_batch):
     slice = {}
-    slice['input_ids'] = torch.tensor(t_input_ids).to(device)
-    slice['attention_mask'] = torch.tensor(t_attention_mask).to(device)
-    slices.append(slice)
+    slice['input_ids'] = a.to(device)
+    slice['attention_mask'] = b.to(device)
 
-    input_ids = input_ids[512:]
-    attention_mask = attention_mask[512:]
-    size -= 512
+    slices.append(slice)
 
   return slices
 
-
-# Evaluate 512-token slices and add up the vectors each one produced
-# Model returns sparse vectors of 30522 elements
+# Evaluate slices
+# Data dimensions range from [1, 512] to [bsz, 512]
+# Returns a vector of 30522 elements
 def process_slice(data):
   with torch.no_grad():
-      doc_rep = model(**data).squeeze()
+    doc_rep = model(**data)
 
-  return doc_rep
+  return doc_rep.sum(dim=-2)
 
 def process_tokenized(tokenized_data):
   z = torch.zeros(30522).to(device)

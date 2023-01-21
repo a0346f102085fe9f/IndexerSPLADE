@@ -45,7 +45,7 @@ class Splade(torch.nn.Module):
 
 ##### v2
 agg = "max"
-model_type_or_dir = "splade-cocondenser-ensembledistil/"
+model_type_or_dir = "naver/splade-cocondenser-ensembledistil"
 # model_type_or_dir = "weights/splade_distil_CoCodenser_large"
 # model_type_or_dir = "weights/splade_max"
 # model_type_or_dir = "weights/distilsplade_max"

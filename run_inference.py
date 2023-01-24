@@ -71,35 +71,10 @@ def inspect_json(sorted_d, mag):
   print(json.dumps(_json, indent=4))
 
 
-# Split lots of tokens into 512-token slices
-# 512 tokens is the limit of this model
+# Split the stack of 512-token slices further to avoid choking the GPU
 def slices(tokenized_data):
-  input_ids = tokenized_data.input_ids
-  attention_mask = tokenized_data.attention_mask
-  size = len(input_ids)
-
-  # Scrutiny paid off:
-  # We saw a big drop in dimension count with initial slicing
-  # Turns out that we were missing token 102, aka [SEP], that should go at the end
-  # Adding it back forcibly brings the dimensions back up. The model appears to have heavy dependence on it being there.
-  # Additionally, we are missing token 101 from the start of any consecutive slices, but it doesn't seem to make much difference
-  for i in range(1, 1 + size // 512):
-    input_ids.insert(i * 512 - 1, 102)
-    attention_mask.insert(i * 512 - 1, 1)
-
-  # Pad to be a multiple of 512
-  # Attention mask is 0 so having these new tokens should not affect the results
-  while len(input_ids) % 512 > 0:
-    input_ids.append(0)
-    attention_mask.append(0)
-
-  # Turn into tensors
-  # Then make tensors rectangular
-  a_lin = torch.tensor(input_ids)
-  b_lin = torch.tensor(attention_mask)
-
-  a_rect = torch.stack(a_lin.split(512))
-  b_rect = torch.stack(b_lin.split(512))
+  a_rect = tokenized_data['input_ids']
+  b_rect = tokenized_data['attention_mask']
 
   # Apply batch size limit
   # Batch size should be increased if there's spare VRAM
@@ -110,9 +85,10 @@ def slices(tokenized_data):
   slices = []
 
   for a, b in zip(a_batch, b_batch):
-    slice = {}
-    slice['input_ids'] = a.to(device)
-    slice['attention_mask'] = b.to(device)
+    slice = {
+      'input_ids': a.to(device),
+      'attention_mask': b.to(device)
+    }
 
     slices.append(slice)
 
@@ -154,13 +130,10 @@ def process_tokenized(tokenized_data):
   sorted_d = {k: v for k, v in sorted(d.items(), key=lambda item: item[1], reverse=True)}
 
   # Mark stray tokens by negating their weight
-  token_map = {}
-
-  for k in tokenized_data.input_ids:
-    token_map[k] = 1
+  token_set = set(tokenized_data.input_ids.flatten().tolist())
 
   for k in sorted_d:
-    if not k in token_map:
+    if not k in token_set:
       sorted_d[k] = -sorted_d[k]
 
   return (sorted_d, mag)
@@ -199,7 +172,15 @@ for filename in dir:
   text = file.read()
   file.close()
 
-  tokenized_data = tokenizer(text)
+  # This mix of parameters allows for long inputs
+  # Resulting token_ids will look as follows:
+  # [[101, ..., 102],
+  #  [101, ..., 102],
+  #  [101, ..., 102],
+  #  [101, ..., 0]]
+  #
+  # A "stride" parameter is available to overlap slices by n tokens
+  tokenized_data = tokenizer(text, truncation=True, padding=True, return_overflowing_tokens=True, return_tensors="pt")
   data, mag = process_tokenized(tokenized_data)
 
   k_array = array("h", data.keys())

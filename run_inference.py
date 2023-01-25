@@ -101,10 +101,10 @@ def process_slice(data):
   with torch.no_grad():
     doc_rep = model(**data)
 
-  return doc_rep.sum(dim=-2)
+  return doc_rep.sum(dim=-2).cpu()
 
 def process_tokenized(tokenized_data):
-  z = torch.zeros(30522).to(device)
+  z = torch.zeros(30522)
 
   for slice in slices(tokenized_data):
     z = z + process_slice(slice)
@@ -116,10 +116,10 @@ def process_tokenized(tokenized_data):
   mag = float(z.dot(z)**0.5)
 
   # get the number of non-zero dimensions in the rep:
-  col = torch.nonzero(z).flatten().cpu().tolist()
+  col = torch.nonzero(z).flatten().tolist()
 
   # Build the compact vector
-  weights = z[col].cpu().tolist()
+  weights = z[col].tolist()
   d = {}
 
   for k, v in zip(col, weights):

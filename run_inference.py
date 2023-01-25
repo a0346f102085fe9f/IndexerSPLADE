@@ -116,7 +116,7 @@ def process_tokenized(tokenized_data):
   mag = float(z.dot(z)**0.5)
 
   # get the number of non-zero dimensions in the rep:
-  col = torch.nonzero(z).squeeze().cpu().tolist()
+  col = torch.nonzero(z).flatten().cpu().tolist()
 
   # Build the compact vector
   weights = z[col].cpu().tolist()

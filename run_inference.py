@@ -101,13 +101,15 @@ def process_slice(data):
   with torch.no_grad():
     doc_rep = model(**data)
 
-  return doc_rep.sum(dim=-2).cpu()
+  return doc_rep.cpu()
 
 def process_tokenized(tokenized_data):
-  z = torch.zeros(30522)
+  reps = []
 
   for slice in slices(tokenized_data):
-    z = z + process_slice(slice)
+    reps.append(process_slice(slice))
+
+  z = torch.vstack(reps).sum(dim=-2)
 
   # Precompute the magnitude
   # 1. Dot product self

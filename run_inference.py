@@ -78,7 +78,7 @@ def slices(tokenized_data):
 
   # Apply batch size limit
   # Batch size should be increased if there's spare VRAM
-  bsz = 8
+  bsz = 4
 
   a_batch = a_rect.split(bsz)
   b_batch = b_rect.split(bsz)

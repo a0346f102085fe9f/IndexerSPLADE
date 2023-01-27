@@ -96,7 +96,6 @@ def slices(tokenized_data):
 
 # Evaluate slices
 # Data dimensions range from [1, 512] to [bsz, 512]
-# Returns a vector of 30522 elements
 def process_slice(data):
   with torch.no_grad():
     doc_rep = model(**data)
@@ -109,7 +108,7 @@ def process_tokenized(tokenized_data):
   for slice in slices(tokenized_data):
     reps.append(process_slice(slice))
 
-  z = torch.vstack(reps).sum(dim=-2)
+  z = torch.vstack(reps).sum(0)
 
   # Precompute the magnitude
   # 1. Dot product self

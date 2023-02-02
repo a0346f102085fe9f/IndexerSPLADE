@@ -108,6 +108,10 @@ def process_tokenized(tokenized_data):
   for slice in slices(tokenized_data):
     reps.append(process_slice(slice))
 
+  # Pool the embeddings
+  # I have also tried max pooling instead of sum:
+  # 1. It does not have much effect on search results
+  # 2. It does have a lot of effect on auto tags (It ruins them)
   z = torch.vstack(reps).sum(0)
 
   # Precompute the magnitude

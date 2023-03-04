@@ -57,7 +57,7 @@ def inspect_json(sorted_d, mag):
   _json = { 'elements': elem, 'magnitude': mag }
 
   print("JSON representation:")
-  print(json.dumps(_json, indent=4))
+  print(json.dumps(_json, indent=4, ensure_ascii=False))
 
 
 # example document from MS MARCO passage collection (doc_id = 8003157)

@@ -36,25 +36,15 @@ class Splade(torch.nn.Module):
             return torch.sum(torch.log(1 + torch.relu(out)) * kwargs["attention_mask"].unsqueeze(-1), dim=1)
 
 
-# Model folder
+# Model folder or repo
 #
-#### v1
-# agg = "sum"
-# model_type_or_dir = "weights/flops_efficient"
-# model_type_or_dir = "weights/flops_best"
-
-##### v2
-agg = "max"
+#model_type_or_dir = "naver/neuclir22-splade-ru"
 model_type_or_dir = "naver/splade-cocondenser-ensembledistil"
-# model_type_or_dir = "weights/splade_distil_CoCodenser_large"
-# model_type_or_dir = "weights/splade_max"
-# model_type_or_dir = "weights/distilsplade_max"
-# Model taken from http://download-de.europe.naverlabs.com/Splade_Release_Jan22/splade_distil_CoCodenser_large.tar.gz
 
 
 # Model loading
 #
-model = Splade(model_type_or_dir, agg=agg)
+model = Splade(model_type_or_dir)
 model.eval()
 model.to(device)
 tokenizer = AutoTokenizer.from_pretrained(model_type_or_dir)

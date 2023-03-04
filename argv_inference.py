@@ -122,7 +122,7 @@ def process_slice(data):
   #print("Slice!")
   return doc_rep
 
-z = torch.zeros(30522)
+z = torch.zeros(tokenizer.vocab_size)
 
 for slice in slices:
   z = z + process_slice(slice)

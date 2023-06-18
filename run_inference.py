@@ -90,7 +90,34 @@ def process_slice(data):
   with torch.no_grad():
     doc_rep = model(**data)
 
-  return doc_rep.cpu()
+  return doc_rep.cpu().T
+
+# Proximity-aware pooling
+# Weights for outer product
+def weights(n):
+  v = torch.arange(n)
+  m = v - v.unsqueeze(1)
+  w = 0.5**m
+
+  return w.triu(1)
+
+# Relies on internal batching to deal with subpar memory scaling
+# Before: 4*30522*512*512 bytes = 29.8 GB
+# After: 4*128*512*512 bytes = 128 MB
+def score(x):
+  w = weights(x.shape[1])
+  slices = x.split(128)
+  sums = []
+
+  for s in slices:
+    p = torch.einsum("bi,bj->bij", s, s).triu(1)
+    b = w * p
+
+    sums.append( b.sum((1,2)) )
+
+  score = x.sum(1) + torch.cat(sums)
+
+  return score
 
 def process_tokenized(tokenized_data):
   reps = []
@@ -99,10 +126,13 @@ def process_tokenized(tokenized_data):
     reps.append(process_slice(slice))
 
   # Pool the embeddings
-  # I have also tried max pooling instead of sum:
-  # 1. It does not have much effect on search results
-  # 2. It does have a lot of effect on auto tags (It ruins them)
-  z = torch.vstack(reps).sum(0)
+  # A paper that provides an overview of different pooling strategies:
+  # https://arxiv.org/abs/2305.18494
+  #
+  # Previous experience:
+  # - Sum pooling: works, just be sure to use cosine similarity, not dot product
+  # - Max pooling: works but has a negative effect on auto tags
+  z = score(torch.hstack(reps))
 
   # Precompute the magnitude
   # 1. Dot product self

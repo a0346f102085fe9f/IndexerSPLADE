@@ -101,21 +101,15 @@ def weights(n):
 
   return w.triu(1)
 
-# Relies on internal batching to deal with subpar memory scaling
-# Before: 4*30522*512*512 bytes = 29.8 GB
-# After: 4*128*512*512 bytes = 128 MB
 def score(x):
-  w = weights(x.shape[1])
-  slices = x.split(128)
+  w = weights(x.shape[1]).flatten()
   sums = []
 
-  for s in slices:
-    p = torch.einsum("bi,bj->bij", s, s).triu(1)
-    b = w * p
+  for s in x:
+    sum = torch.outer(s, s).flatten().dot(w)
+    sums.append(sum)
 
-    sums.append( b.sum((1,2)) )
-
-  score = x.sum(1) + torch.cat(sums)
+  score = x.sum(1) + torch.tensor(sums)
 
   return score
 

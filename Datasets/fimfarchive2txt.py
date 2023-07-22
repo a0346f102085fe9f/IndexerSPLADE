@@ -20,7 +20,7 @@ def save_history(data):
 	file.close()
 
 history = load_history()
-master = zipfile.ZipFile("20220601.zip", "r")
+master = zipfile.ZipFile("20230601.zip", "r")
 
 # Fuck you and your BeatifulSoup
 # Extract all innerText
@@ -154,7 +154,7 @@ for entry in master.filelist:
 			process_epub(path, master)
 			history[path] = 1
 			processed += 1
-	if processed >= 10000:
+	if processed >= 30000:
 		break
 
 print("Processed", processed, "entries, skipped", skipped, "entries.")

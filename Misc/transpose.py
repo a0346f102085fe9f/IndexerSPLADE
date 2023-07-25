@@ -5,17 +5,20 @@ import torch
 # 2. The rows are sorted such that the rows that have the most nonzero elements come first
 #
 
-b_dst = bytes(30000*30522*4)
-
 with open("datatape.f32", "rb") as f:
-	b_src = f.read()
+	b_src = bytearray(f.read())
 
-x = torch.frombuffer(b_src, dtype=torch.float).view([30000, 30522])
-t = torch.frombuffer(b_dst, dtype=torch.float).view([30522, 30000])
+assert len(b_src) % (4*30522) == 0
+
+n = len(b_src) // (4*30522)
+b_dst = bytearray(n*30522*4)
+
+x = torch.frombuffer(b_src, dtype=torch.float).view([n, 30522])
+t = torch.frombuffer(b_dst, dtype=torch.float).view([30522, n])
 t[:] = x.T
 
-#with open("t_datatape.f32", "wb") as f:
-#	f.write(b_dst)
+with open("t_datatape.f32", "wb") as f:
+	f.write(b_dst)
 
 x = None
 b_src = None

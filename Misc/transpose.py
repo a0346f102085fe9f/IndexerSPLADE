@@ -1,4 +1,5 @@
 import torch
+import json
 
 # This script will perform some reversible filtering on the 30000x30522 float matrix produced sparse2dense.py
 # 1. The rows are sorted such that the rows that have the most nonzero elements come first
@@ -26,3 +27,16 @@ t[:] = x.T
 
 with open("st_datatape.f32", "wb") as f:
 	f.write(b_dst)
+
+with open("idx.json", "r") as f:
+	idx = json.load(f)
+
+titles = list(idx.keys())
+remap_idx = {}
+
+for i, j in enumerate(indices.tolist()):
+	title = titles[j]
+	remap_idx[title] = idx[title]
+
+with open("idx_remap.json", "w") as f:
+	json.dump(remap_idx, f)

@@ -34,7 +34,7 @@ for title, spec in idx.items():
 	v = torch.frombuffer(b_v, dtype=torch.float)
 
 	dense[:] = 0.0
-	dense[k] = abs(v) # Wrap v in abs() to remove strayness information
+	dense[k] = v # Strayness information kept, may upset sorting
 
 	out.write(buffer)
 	print(dim)

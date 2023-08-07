@@ -64,4 +64,4 @@ for i, j in enumerate(indices.tolist()):
 	remap_idx[title] = idx[title]
 
 with open("idx_remap.json", "w") as f:
-	json.dump(remap_idx, f)
+	json.dump(remap_idx, f, separators=(',', ':'))

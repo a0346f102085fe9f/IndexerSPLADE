@@ -53,7 +53,7 @@ with open("st_datatape.f32", "wb") as f:
 
 print("Transposed")
 
-with open("idx.json", "r") as f:
+with open("idx.json", "rb") as f:
 	idx = json.load(f)
 
 titles = list(idx.keys())

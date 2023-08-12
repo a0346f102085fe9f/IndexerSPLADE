@@ -14,7 +14,7 @@ import json
 # For N = 30000, the resulting file size will be:
 # 30000x30522x4 bytes = 3.41 G
 #
-with open("idx.json") as f:
+with open("idx.json", "rb") as f:
 	idx = json.load(f)
 
 keys = open("datatape_k.bin", "rb")
